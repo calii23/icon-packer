@@ -1,0 +1,17 @@
+{
+  "iconsDir": "~/workspaces/kotlin/vaadin/example-project/src/main/icons",
+  "distDir": "~/workspaces/kotlin/vaadin/example-project/target/icons",
+  "setName": "custom-icons",
+  "iconSize": 24,
+  "padding": 4,
+  "iconsFileName": "icons.html",
+  "enum": {
+    "className": "CustomIcon",
+    "package": "com.example.ui",
+    "interfaces": ["com.example.ui.Creatable"],
+    "createFunctionName": "create",
+    "overrideCreate": true,
+    "language": "java"
+  },
+  "targetProjectRoot": "~/workspaces/kotlin/vaadin/example-project"
+}

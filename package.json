@@ -1,0 +1,23 @@
+{
+  "name": "icon-packer",
+  "version": "1.0.0",
+  "description": "Pack icons into Vaadin Flow icon set",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jsd0fl1/icon-packer.git"
+  },
+  "author": "Maximilian Schelbach <maximilian@schelbach.de>",
+  "license": "MIT",
+  "scripts": {
+    "start": "node index.js config.json"
+  },
+  "bin": {
+    "icon-packer": "index.js"
+  },
+  "dependencies": {
+    "mkdirs": "0.0.2",
+    "node-html-parser": "^1.1.11",
+    "svgpath": "^2.2.1",
+    "to-constant-case": "^1.0.0"
+  }
+}
