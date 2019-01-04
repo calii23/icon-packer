@@ -2,6 +2,7 @@ const {parse} = require('node-html-parser');
 const svgpath = require('svgpath');
 
 module.exports.convert = (svg, output, padding, size, iconName) => {
+    try {
     let root = parse(svg);
     let originalSize = size;
     let rootViewBox = root.firstChild.attributes.viewBox;
@@ -37,7 +38,10 @@ module.exports.convert = (svg, output, padding, size, iconName) => {
     }
 
     output.write('" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>');
-
+    } catch (e) {
+        console.error('error while processing icon: ', iconName);
+        console.error(e);
+    }
 };
 
 function convertTag(element, iconName) {

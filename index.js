@@ -73,7 +73,8 @@ Object.defineProperty(String.prototype, 'replaceAll', {
 
 mkdirs(join(configDir, distDir));
 
-let icons = readdirSync(join(configDir, iconsDir));
+let icons = readdirSync(join(configDir, iconsDir))
+    .filter(fullName => fullName.toLowerCase().endsWith('.svg'));
 console.log(`found ${icons.length} icons`);
 
 let enumClassFile = join(configDir, distDir, config.enum.className + enumFileExtension);
