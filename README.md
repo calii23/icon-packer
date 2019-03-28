@@ -5,7 +5,7 @@ After the execution the only thing needed to do is to add
 @HtmlImport("frontend://icons.html")
 ```
 to the main layout. The application must provide files
-from the `static` direction in the resources on Vaadin root
+from the `static` directory in the resources on Vaadin root
 path. (Default in Spring Boot)
 
 # config.json
