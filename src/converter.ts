@@ -1,50 +1,54 @@
-const {parse} = require('node-html-parser');
-const svgpath = require('svgpath');
+import * as svgpath from 'svgpath';
+import {HTMLElement, NodeType, parse} from 'node-html-parser';
+import {WriteStream} from 'fs';
 
-module.exports.convert = (svg, output, padding, size, iconName) => {
+export function convert(svg: string, output: WriteStream, padding: number, size: number, iconName: string): void {
     try {
-    let root = parse(svg);
-    let originalSize = size;
-    let rootViewBox = root.firstChild.attributes.viewBox;
-    if (rootViewBox) {
-        let viewBoxParts = rootViewBox.split(' ');
-        let x1 = parseFloat(viewBoxParts[0]);
-        let y1 = parseFloat(viewBoxParts[1]);
-        let x2 = parseFloat(viewBoxParts[2]);
-        let y2 = parseFloat(viewBoxParts[3]);
+        let root = parse(svg);
+        let originalSize = size;
+        let rootViewBox = (root.firstChild as HTMLElement).attributes.viewBox;
+        if (rootViewBox) {
+            let viewBoxParts = rootViewBox.split(' ');
+            let x1 = parseFloat(viewBoxParts[0]);
+            let y1 = parseFloat(viewBoxParts[1]);
+            let x2 = parseFloat(viewBoxParts[2]);
+            let y2 = parseFloat(viewBoxParts[3]);
 
-        let width = x2 - x1;
-        let height = y2 - y1;
-        originalSize = Math.max(width, height);
-    }
-    output.write('<path d="');
-    let path = '';
-    for (let current of root.firstChild.childNodes) {
-        path += convertTag(current, padding);
-    }
+            let width = x2 - x1;
+            let height = y2 - y1;
+            originalSize = Math.max(width, height);
+        }
+        output.write('<path d="');
+        let path = '';
+        for (let current of root.firstChild.childNodes) {
+            if (current.nodeType !== NodeType.ELEMENT_NODE) {
+                continue;
+            }
+            path += convertTag(current as HTMLElement, iconName);
+        }
 
-    let parsedPath = svgpath(path);
-    if (parsedPath.err) {
-        console.error(`could not parse path in ${iconName}: ${parsedPath.err}`);
-        output.write(path);
-    } else {
-        output.write(parsedPath
-            .abs()
-            .translate(padding, padding)
-            .scale(size / (originalSize + padding * 2))
-            .round(1)
-            .toString()
-            .replaceAll(' ', ','));
-    }
+        let parsedPath = svgpath(path);
+        if ((parsedPath as any).err) {
+            console.error(`could not parse path in ${iconName}: ${(parsedPath as any).err}`);
+            output.write(path);
+        } else {
+            output.write(parsedPath
+                .abs()
+                .translate(padding, padding)
+                .scale(size / (originalSize + padding * 2))
+                .round(1)
+                .toString()
+                .replaceAll(' ', ','));
+        }
 
-    output.write('" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>');
+        output.write('" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>');
     } catch (e) {
         console.error('error while processing icon: ', iconName);
         console.error(e);
     }
-};
+}
 
-function convertTag(element, iconName) {
+function convertTag(element: HTMLElement, iconName: string): string {
     switch (element.tagName) {
         case 'path':
             return element.attributes.d;
@@ -65,15 +69,10 @@ function convertTag(element, iconName) {
             return polylinePath;
         case 'circle':
         case 'ellipse':
-            let {cx, cy, rx, ry, r} = element.attributes;
-            if (r) {
-                rx = r;
-                ry = r;
-            }
-            cx = parseFloat(cx);
-            cy = parseFloat(cy);
-            rx = parseFloat(rx);
-            ry = parseFloat(ry);
+            let cx = parseFloat(element.attributes.cx);
+            let cy = parseFloat(element.attributes.cy);
+            let rx = parseFloat(element.attributes.r ? element.attributes.r : element.attributes.rx);
+            let ry = parseFloat(element.attributes.r ? element.attributes.r : element.attributes.ry);
 
             return `M${cx - rx},${cy}a${rx},${ry},0,1,0,${rx * 2},0a${rx},${ry},0,1,0,${-rx * 2},0`;
         case 'rect':
@@ -97,7 +96,10 @@ function convertTag(element, iconName) {
         case 'g':
             let groupPath = '';
             for (let current of element.childNodes) {
-                groupPath += convertTag(current, iconName);
+                if (current.nodeType !== NodeType.ELEMENT_NODE) {
+                    continue;
+                }
+                groupPath += convertTag(current as HTMLElement, iconName);
             }
             return groupPath;
         case 'title':
@@ -105,17 +107,17 @@ function convertTag(element, iconName) {
         case undefined:
             return '';
         default:
-            process.stdout.write('\033[2K');
+            process.stdout.write('\x1b[2K');
             console.log(`unknown tag found in ${iconName}: ${element.tagName}`);
             return '';
     }
 }
 
-function convertRect(x, y, width, height) {
+function convertRect(x: number, y: number, width: number, height: number): string {
     return `M${x},${y}l${width},0l0,${height}l${-width},0l0,${-height}`;
 }
 
-function convertRoundRect(x, y, width, height, r) {
+function convertRoundRect(x: number, y: number, width: number, height: number, r: number): string {
     let path = '';
     path += `M${x},${y + r}`; // initial position
     path += `q0,${-r},${r},${-r}`; // corner left top

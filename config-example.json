@@ -8,9 +8,21 @@
   "enum": {
     "className": "CustomIcon",
     "package": "com.example.ui",
-    "interfaces": ["com.example.ui.Creatable"],
-    "createFunctionName": "create",
-    "overrideCreate": true,
+    "interfaces": [
+      "com.example.ui.Creatable"
+    ],
+    "collectionNameProperty": {
+      "name": "collectionName",
+      "override": true
+    },
+    "iconNameProperty": {
+      "name": "iconName",
+      "override": true
+    },
+    "createFunction": {
+      "name": "create",
+      "override": false
+    },
     "language": "java"
   },
   "targetProjectRoot": "~/workspaces/kotlin/vaadin/example-project"

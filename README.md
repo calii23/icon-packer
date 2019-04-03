@@ -4,7 +4,11 @@ After the execution the only thing needed to do is to add
 ```kotlin
 @HtmlImport("frontend://icons.html")
 ```
-to the main layout. The application must provide files
+to the main layout or
+```html
+<link rel="import" href="icons.html">
+```
+to a html component. The application must provide files
 from the `static` directory in the resources on Vaadin root
 path. (Default in Spring Boot)
 
@@ -36,12 +40,18 @@ The class name for the enum class
 The package of the enum class
 ### interfaces
 A list of interfaces that the enum class should implements
-### createFunctionName (optional)
-If this property is set, a function to create an instance of
-the Vaadin Icon component will created with the given name.
-### overrideCreate (optional)
-If this is `true`, the create function will marked as override. This is
-useful when the create function is an implementation from an interface.
+### collectionNameProperty (optional)
+If this property is set, a property which contains the name of
+the set will generated. In Java a getter method will generated
+and in kotlin a final property. This object must contains a
+`name` and a `override` key.
+### iconNameProperty
+The name of the property, in which the name of the icon stored.
+In Java a getter method will generated and in kotlin a final 
+property. This object must contains a `name` and a `override` key.
+### createFunction (optional)
+If this property is set, a method to create a vaadin icon will
+be generated. This object must contains a `name` and a `override` key.
 ### language
 The language the enum class should generated in. In this version `java` and
 `kotlin` are supported.
