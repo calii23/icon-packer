@@ -4,6 +4,11 @@
   "setName": "custom-icons",
   "iconSize": 24,
   "padding": 4,
+  "appearance": "fill",
+  "appearanceOverride": {
+    "plus-solid": "stroke"
+  },
+  "polymerVersion": 2,
   "iconsFileName": "icons.html",
   "enum": {
     "className": "CustomIcon",
@@ -25,5 +30,6 @@
     },
     "language": "java"
   },
-  "targetProjectRoot": "~/workspaces/kotlin/vaadin/example-project"
+  "sourceRoot": "src/main/java",
+  "frontendRoot": "src/main/resources/"
 }

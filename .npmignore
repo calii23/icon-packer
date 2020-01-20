@@ -1,0 +1,8 @@
+.git
+.gitignore
+*.iml
+tsconfig.json
+node_modules
+src
+dist/convert.js
+config-example.json

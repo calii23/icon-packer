@@ -30,6 +30,30 @@ The Vaadin icon collection name. (e.g. `custom-icons`)
 The size of the icons in pixel. (e.g. `24`)
 ## padding
 The padding around the icons. (recommended: 4)
+## appearance (optional)
+This property defines whether the icons are filled or not. This
+property must have one of these values: `stroke`, `fill`, `automatic`.
+The default value is `automatic`. When this property is `stroke` all
+icon will look like this:
+```html
+<path g="PATH" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>
+```
+When it is `fill` all icons will look like this:
+```html
+<path g="PATH" fill="currentColor" stroke="none"/>
+```
+When it is `automatic` the appearance will be determined based on the
+first tag in the icon file (this is the default). CSS is ignored at all!
+## appearanceOverride (optional)
+When given, this property can be used to define the icon appearance for specific icons. E.g.:
+```json
+{
+  "appearanceOverride": {
+    "plus-solid": "stroke",
+    "plus-fill": "fill"
+  }
+}
+```
 ## iconsFileName
 The file name for the icons html file. (e.g. `icons.html`)
 ## enum
@@ -55,8 +79,11 @@ be generated. This object must contains a `name` and a `override` key.
 ### language
 The language the enum class should generated in. In this version `java` and
 `kotlin` are supported.
-## targetProjectRoot (optional)
-If this property is set, the output files will copied into the
-project. The project must have the following structure:
-The resources must be placed  into `${projectRoot}/src/main/resources`
-and the sources into `${projectRoot}/src/main/kotlin`
+
+## sourcesRoot (optional)
+If this property is set, the enum file will be copied into the project.
+This property must be a path like `src/main/kotlin`.
+## frontendRoot (optional)
+If this property is set, the icons HTML file will be copied into the
+project. This property must be a path like `src/main/resources/static/frontend`
+or `src/main/resources/META-INF/resources/frontend`.

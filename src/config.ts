@@ -12,11 +12,19 @@ export interface ApplicationConfig {
 
     padding: number;
 
+    appearance?: IconAppearance;
+
+    appearanceOverride?: Record<string, IconAppearance>;
+
+    polymerVersion: number;
+
     iconsFileName: string;
 
-    enum: CodeGenerationConfig;
+    enum?: CodeGenerationConfig;
 
-    targetProjectRoot?: string;
+    sourceRoot?: string;
+
+    frontendRoot?: string;
 }
 
 export interface CodeGenerationConfig {
@@ -41,6 +49,7 @@ export interface CodeComponent {
     override: boolean;
 }
 
+export type IconAppearance = 'stroke' | 'fill' | 'automatic';
 
 const configFile = process.argv[2];
 if (!existsSync(configFile)) {

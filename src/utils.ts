@@ -1,4 +1,5 @@
-import {createReadStream, createWriteStream} from 'fs';
+import {createReadStream, createWriteStream, lstatSync, readdirSync} from 'fs';
+import {join} from 'path';
 
 declare global {
     interface String {
@@ -54,4 +55,22 @@ export function getPackage(className: string): string {
 
 export function copySync(from, to) {
     createReadStream(from).pipe(createWriteStream(to));
+}
+
+export function scanDirectorySync(directory: string, fileExtension: string): string[] {
+    let result: string[] = [];
+    scanDirectorySync0(directory, fileExtension, result);
+    return result;
+}
+
+function scanDirectorySync0(directory: string, fileExtension: string, result: string[]): void {
+    let files = readdirSync(directory);
+    for (let file of files) {
+        let fullPath = join(directory, file);
+        if (lstatSync(fullPath).isDirectory()) {
+            scanDirectorySync0(fullPath, fileExtension, result);
+        } else if (file.endsWith(`.${fileExtension}`)) {
+            result.push(fullPath);
+        }
+    }
 }

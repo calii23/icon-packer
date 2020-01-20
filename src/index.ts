@@ -1,12 +1,14 @@
 #!/usr/bin/env node
-import {CodeGenerator, JavaCodeGenerator, KotlinCodeGenerator} from './code-generator';
-import {createWriteStream, readdirSync, readFileSync, WriteStream} from 'fs';
+import {createWriteStream, existsSync, mkdirSync, readFileSync, writeFileSync} from 'fs';
 import {join, parse} from 'path';
-import {convert} from './converter';
 import * as mkdirs from 'mkdirs';
+import {Writable} from 'stream';
 
+import {CodeGenerator, JavaCodeGenerator, KotlinCodeGenerator} from './code-generator';
 import {config, configDir} from './config';
-import {copySync} from './utils';
+import {copySync, scanDirectorySync} from './utils';
+import {MemoryWriteStream} from './memory-stream';
+import {convert} from './converter';
 
 if (process.argv.length !== 3) {
     console.error(`Usage: node ${__filename} [config_file]`);
@@ -14,12 +16,11 @@ if (process.argv.length !== 3) {
 }
 
 class Application {
-    private codeGenerator: CodeGenerator;
-    private iconSetStream: WriteStream;
+    private codeGenerator: CodeGenerator | undefined;
+    private iconSetStream: Writable;
 
     private iconsDir: string;
     private distDir: string;
-    private targetProjectRoot: string | null;
 
     private icons: string[];
 
@@ -29,32 +30,43 @@ class Application {
         this.startCodeGeneration();
         this.convertIcons();
         this.endCodeGeneration();
-        if (this.targetProjectRoot) {
-            this.copyToTarget();
-        }
+        this.packIcons();
+        this.copyToTarget();
     }
 
     private startCodeGeneration(): void {
-        this.codeGenerator.start(config.enum, this.distDir);
+        if (config.enum) this.codeGenerator.start(config.enum, this.distDir);
         this.iconSetStream.write(`<iron-iconset-svg name="${config.setName}" size="${config.iconSize}"><svg><defs>`);
     }
 
     private endCodeGeneration(): void {
-        this.codeGenerator.end(config.enum, config.setName);
+        if (config.enum) this.codeGenerator.end(config.enum, config.setName);
         this.iconSetStream.write('</defs></svg></iron-iconset-svg>');
         this.iconSetStream.end();
     }
 
+    private packIcons(): void {
+        if (config.polymerVersion === 3) {
+            let icons = (this.iconSetStream as MemoryWriteStream).toBuffer().toString();
+            writeFileSync(join(this.distDir, config.iconsFileName), `import '@polymer/iron-iconset-svg/iron-iconset-svg.js';var e=document.createElement("template");e.innerHTML=${JSON.stringify(icons)};document.head.appendChild(e.content);`);
+        }
+    }
+
     private copyToTarget(): void {
-        this.codeGenerator.copyToSources(this.distDir, this.targetProjectRoot, config.enum.package, config.enum.className);
-        let iconsDestinationDir = join(configDir, config.targetProjectRoot, 'src', 'main', 'resources', 'static', 'frontend');
-        mkdirs(iconsDestinationDir);
-        copySync(join(this.distDir, config.iconsFileName), join(iconsDestinationDir, config.iconsFileName));
+        if (config.enum && config.sourceRoot) {
+            this.codeGenerator.copyToSources(this.distDir, config.sourceRoot, config.enum.package, config.enum.className);
+        }
+        if (config.frontendRoot) {
+            let iconsDestinationDir = join(configDir, config.frontendRoot);
+            mkdirs(iconsDestinationDir);
+            copySync(join(this.distDir, config.iconsFileName), join(iconsDestinationDir, config.iconsFileName));
+        }
     }
 
     private scanIcons(): void {
-        this.icons = readdirSync(join(configDir, config.iconsDir))
-            .filter(fullName => fullName.toLowerCase().endsWith('.svg'));
+        this.icons = scanDirectorySync(join(configDir, config.iconsDir), 'svg');
+        //this.icons = readdirSync(join(configDir, config.iconsDir))
+        //    .filter(fullName => fullName.toLowerCase().endsWith('.svg'));
         console.log(`found ${this.icons.length} icons`);
     }
 
@@ -65,10 +77,10 @@ class Application {
             let iconFile = this.icons[i];
             let icon = parse(iconFile).name;
             process.stdout.write('\x1b[2Kprocessing icon (' + (i + 1) + '/' + this.icons.length + '): ' + icon + '\r');
-            this.codeGenerator.writeIcon(icon, i === this.icons.length - 1);
-            let rawIconData = readFileSync(join(this.iconsDir, iconFile)).toString();
+            if (config.enum) this.codeGenerator.writeIcon(icon, i === this.icons.length - 1);
+            let rawIconData = readFileSync(iconFile).toString();
             this.iconSetStream.write(`<g id="${icon}">`);
-            convert(rawIconData, this.iconSetStream, config.padding, config.iconSize, icon);
+            convert(rawIconData, this.iconSetStream, config.padding, config.iconSize, icon, (config.appearanceOverride || {})[icon] || config.appearance || 'automatic');
             this.iconSetStream.write('</g>');
         }
 
@@ -85,18 +97,22 @@ class Application {
     private initPaths(): void {
         this.iconsDir = join(configDir, config.iconsDir);
         this.distDir = join(configDir, config.distDir);
-        if (config.targetProjectRoot) {
-            this.targetProjectRoot = join(configDir, config.targetProjectRoot);
-        } else {
-            this.targetProjectRoot = null;
-        }
+        if (!existsSync(this.distDir)) mkdirSync(this.distDir);
     }
 
     private initIconSetStream(): void {
-        this.iconSetStream = createWriteStream(join(this.distDir, config.iconsFileName));
+        if (config.polymerVersion === 2) {
+            this.iconSetStream = createWriteStream(join(this.distDir, config.iconsFileName));
+        } else if (config.polymerVersion === 3) {
+            this.iconSetStream = new MemoryWriteStream();
+        } else {
+            console.error('Unsupported Polymer version:', config.polymerVersion);
+            process.exit(2);
+        }
     }
 
     private initCodeGenerator(): void {
+        if (!config.enum) return;
         switch (config.enum.language) {
             case 'java':
                 this.codeGenerator = new JavaCodeGenerator();

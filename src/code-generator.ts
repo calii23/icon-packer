@@ -25,13 +25,12 @@ export interface CodeGenerator {
 
     end(config: CodeGenerationConfig, setName: string): void;
 
-    copyToSources(distDir: string, targetProjectRoot: string, packageName: string, className: string): void;
+    copyToSources(distDir: string, sourcesRoot: string, packageName: string, className: string): void;
 }
 
 abstract class AbstractCodeGenerator implements CodeGenerator {
     protected output: WriteStream;
 
-    protected abstract readonly languageName: string;
     protected abstract readonly filenameExtension: string;
     protected abstract readonly supportsPropertyInConstructor: boolean;
     protected abstract readonly constructorInClassDeclaration: boolean;
@@ -45,7 +44,7 @@ abstract class AbstractCodeGenerator implements CodeGenerator {
 // run the icon-packer script again.\n`);
         this.openFile(config.package);
         this.writeSeparator();
-        let imports = config.interfaces;
+        let imports = config.interfaces || [];
         if (config.createFunction) {
             imports = imports.concat(['com.vaadin.flow.component.icon.Icon']);
         }
@@ -54,7 +53,7 @@ abstract class AbstractCodeGenerator implements CodeGenerator {
             this.writeImports(imports);
             this.writeSeparator();
         }
-        this.openEnum(config.className, config.interfaces.map(getClassName), config.iconNameProperty);
+        this.openEnum(config.className, config.interfaces ? config.interfaces.map(getClassName) : [], config.iconNameProperty);
     }
 
     public writeIcon(icon: string, last: boolean): void {
@@ -104,10 +103,10 @@ abstract class AbstractCodeGenerator implements CodeGenerator {
         this.output.end();
     }
 
-    public copyToSources(distDir: string, targetProjectRoot: string, packageName: string, className: string): void {
+    public copyToSources(distDir: string, sourcesRoot: string, packageName: string, className: string): void {
         let filename = className + this.filenameExtension;
         let packagePath = packageName.replaceAll('.', '/');
-        let targetDir = join(targetProjectRoot, 'src', 'main', this.languageName, packagePath);
+        let targetDir = join(sourcesRoot, packagePath);
         mkdirs(targetDir);
         copySync(join(distDir, filename), join(targetDir, filename));
     }
@@ -144,7 +143,6 @@ abstract class AbstractCodeGenerator implements CodeGenerator {
 }
 
 export class JavaCodeGenerator extends AbstractCodeGenerator {
-    protected readonly languageName: string = 'java';
     protected readonly filenameExtension: string = '.java';
     protected readonly supportsPropertyInConstructor: boolean = false;
     protected readonly constructorInClassDeclaration: boolean = false;
@@ -204,7 +202,6 @@ public enum ${name} `);
 }
 
 export class KotlinCodeGenerator extends AbstractCodeGenerator {
-    protected readonly languageName: string = 'kotlin';
     protected readonly filenameExtension: string = '.kt';
     protected readonly supportsPropertyInConstructor: boolean = true;
     protected readonly constructorInClassDeclaration: boolean = true;

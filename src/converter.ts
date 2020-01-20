@@ -1,12 +1,17 @@
 import * as svgpath from 'svgpath';
 import {HTMLElement, NodeType, parse} from 'node-html-parser';
-import {WriteStream} from 'fs';
+import {Writable} from 'stream';
+import {IconAppearance} from './config';
 
-export function convert(svg: string, output: WriteStream, padding: number, size: number, iconName: string): void {
+export function convert(svg: string, output: Writable, padding: number, size: number, iconName: string, appearance: IconAppearance): void {
     try {
-        let root = parse(svg);
+        let root = (parse(svg) as HTMLElement).querySelector('svg');
+        if (!root) {
+            console.error('file seems not to be a svg file for icon', iconName);
+            return;
+        }
         let originalSize = size;
-        let rootViewBox = (root.firstChild as HTMLElement).attributes.viewBox;
+        let rootViewBox = root.attributes.viewBox;
         if (rootViewBox) {
             let viewBoxParts = rootViewBox.split(' ');
             let x1 = parseFloat(viewBoxParts[0]);
@@ -18,9 +23,28 @@ export function convert(svg: string, output: WriteStream, padding: number, size:
             let height = y2 - y1;
             originalSize = Math.max(width, height);
         }
+
+        if (appearance === 'automatic') {
+            for (let current of root.childNodes) {
+                if (current.nodeType !== NodeType.ELEMENT_NODE) {
+                    continue;
+                }
+                let result = determineAppearance(current as HTMLElement);
+                if (result) {
+                    appearance = result;
+                    break;
+                }
+            }
+
+            if (appearance === 'automatic') {
+                process.stdout.write('\x1b[2K');
+                console.log(`could not determine the icon appearance for ${iconName}, use stroke as default`);
+            }
+        }
+
         output.write('<path d="');
         let path = '';
-        for (let current of root.firstChild.childNodes) {
+        for (let current of root.childNodes) {
             if (current.nodeType !== NodeType.ELEMENT_NODE) {
                 continue;
             }
@@ -41,7 +65,11 @@ export function convert(svg: string, output: WriteStream, padding: number, size:
                 .replaceAll(' ', ','));
         }
 
-        output.write('" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>');
+        if (appearance === 'stroke') {
+            output.write('" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>');
+        } else {
+            output.write('" fill="currentColor" stroke="none"/>');
+        }
     } catch (e) {
         console.error('error while processing icon: ', iconName);
         console.error(e);
@@ -110,6 +138,34 @@ function convertTag(element: HTMLElement, iconName: string): string {
             process.stdout.write('\x1b[2K');
             console.log(`unknown tag found in ${iconName}: ${element.tagName}`);
             return '';
+    }
+}
+
+function determineAppearance(element: HTMLElement): IconAppearance | null {
+    switch (element.tagName) {
+        case 'path':
+        case 'line':
+        case 'polyline':
+        case 'polygon':
+        case 'circle':
+        case 'ellipse':
+        case 'rect':
+            let {fill} = element.attributes;
+            if (fill && fill !== 'none') {
+                return 'fill';
+            }
+            return 'stroke';
+        case 'g':
+            for (let current of element.childNodes) {
+                if (current.nodeType !== NodeType.ELEMENT_NODE) {
+                    continue;
+                }
+                let appearance = determineAppearance(current as HTMLElement);
+                if (appearance) return appearance;
+            }
+            return null;
+        default:
+            return null;
     }
 }
 
