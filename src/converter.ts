@@ -129,6 +129,11 @@ function convertTag(element: HTMLElement, iconName: string): string {
                 }
                 groupPath += convertTag(current as HTMLElement, iconName);
             }
+            if (element.attributes.hasOwnProperty('transform')) {
+                groupPath = svgpath(groupPath)
+                    .transform(element.attributes.transform)
+                    .toString() as string;
+            }
             return groupPath;
         case 'title':
         case 'defs':
